@@ -7,74 +7,127 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
-    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md text-center">
-        <h1 class="text-2xl font-bold mb-6 text-gray-800">Find Your McDonald's Item</h1>
+    <div id="mainContainer" class="bg-white p-8 rounded-lg shadow-md w-full max-w-xl text-center">
+        <h1 class="text-2xl font-bold mb-6 text-gray-800" id="mainTitle">McDonald's Item Finder</h1>
 
-        <div class="mb-4">
-            <input type="text" id="itemInput" placeholder="e.g., chicken_nugget"
-                   class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <div id="inputSection" class="hidden">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Search for an Item</h2>
+            <div class="mb-4">
+                <input type="text" id="itemInput" placeholder="e.g., chicken nuggets, french fries"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <button id="searchButton"
+                    class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                Search Items
+            </button>
         </div>
 
-        <button id="searchButton"
-                class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
-            Search Item
-        </button>
-
-        <div id="resultContainer" class="mt-8">
-            <p id="message" class="text-gray-600 mb-4"></p>
-            <img id="itemImage" src="" alt="McDonald's Item" class="hidden w-full h-auto rounded-md mx-auto object-contain max-h-64">
+        <div id="resultContainer" class="mt-8 text-left">
+            <div id="messages" class="mb-4 text-center"></div>
+            <div id="imageGallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            </div>
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import mcDonaldsItems from './items.js';
+
         document.addEventListener('DOMContentLoaded', () => {
             const itemInput = document.getElementById('itemInput');
             const searchButton = document.getElementById('searchButton');
-            const itemImage = document.getElementById('itemImage');
-            const message = document.getElementById('message');
-
-            const validMcDonaldsItems = [
-                "chicken_nugget",
-                "big_mac",
-                "fries",
-                "mcflurry",
-                "cheeseburger",
-                "quarter_pounder",
-                "egg_mcmuffin",
-            ];
+            const messagesDiv = document.getElementById('messages');
+            const imageGalleryDiv = document.getElementById('imageGallery');
+            const inputSection = document.getElementById('inputSection');
+            const mainTitle = document.getElementById('mainTitle');
 
             const imagePathPrefix = '/assets/v1/';
             const imagePathSuffix = '.webp';
 
-            searchButton.addEventListener('click', () => {
-                const inputValue = itemInput.value.trim().toLowerCase();
+            function formatItemForLookup(itemName) {
+                return itemName.trim().toLowerCase().replace(/\s+/g, '_');
+            }
+
+            function displayItem(item, isUrlLoad = false) {
+                const formattedItemName = formatItemForLookup(item);
+                const imagePath = `${imagePathPrefix}${formattedItemName}${imagePathSuffix}`;
+
+                const imageWrapper = document.createElement('div');
+                imageWrapper.className = 'flex flex-col items-center justify-center p-2 border rounded-md shadow-sm';
+
+                const itemTitle = document.createElement('p');
+                itemTitle.className = 'font-semibold text-gray-800 mb-2';
+                itemTitle.textContent = `"${formattedItemName.replace(/_/g, ' ')}": `;
+
+                const imgElement = document.createElement('img');
+                imgElement.src = imagePath;
+                imgElement.alt = item;
+                imgElement.className = 'hidden w-full h-32 object-contain rounded-md';
+
+                imageWrapper.appendChild(itemTitle);
+                imageWrapper.appendChild(imgElement);
+                imageGalleryDiv.appendChild(imageWrapper);
+
+                imgElement.onload = () => {
+                    itemTitle.innerHTML += '<span class="text-green-600">Detected!</span>';
+                    imgElement.classList.remove('hidden');
+                    imgElement.classList.add('block');
+                };
+
+                imgElement.onerror = () => {
+                    itemTitle.innerHTML += '<span class="text-red-600">Not Found.</span>';
+                    imgElement.classList.add('hidden');
+                    if (isUrlLoad) {
+                        inputSection.classList.remove('hidden');
+                        mainTitle.textContent = "McDonald's Item Finder (Item Not Found)";
+                        messagesDiv.innerHTML = '<p class="text-red-500">Could not find item from URL. Please use the input box.</p>';
+                    }
+                };
+            }
+
+            function processInputList() {
+                const inputValue = itemInput.value.trim();
+                messagesDiv.innerHTML = '';
+                imageGalleryDiv.innerHTML = '';
+                inputSection.classList.remove('hidden');
+                mainTitle.textContent = "McDonald's Item Finder (Manual Search)";
 
                 if (!inputValue) {
-                    message.textContent = 'Please enter an item name.';
-                    itemImage.classList.add('hidden');
+                    messagesDiv.innerHTML = '<p class="text-red-500">Please enter one or more item names.</p>';
                     return;
                 }
 
-                const imagePath = `${imagePathPrefix}${inputValue}${imagePathSuffix}`;
-                console.log(`Attempting to load image from: ${imagePath}`);
-                itemImage.src = imagePath;
+                const items = inputValue.split(',').map(item => item.trim()).filter(item => item !== '');
 
-                itemImage.onload = () => {
-                    message.textContent = `Displaying: ${inputValue.replace(/_/g, ' ')}`;
-                    itemImage.classList.remove('hidden');
-                };
+                if (items.length === 0) {
+                    messagesDiv.innerHTML = '<p class="text-red-500">No valid items entered. Please try again.</p>';
+                    return;
+                }
 
-                itemImage.onerror = () => {
-                    message.textContent = `Sorry, "${inputValue.replace(/_/g, ' ')}" not found or image failed to load.`;
-                    itemImage.classList.add('hidden');
-                };
+                items.forEach(item => displayItem(item));
+            }
 
-                message.textContent = 'Loading...';
-            });
+            let urlItem = null;
 
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('item')) {
+                urlItem = urlParams.get('item');
+            } else if (window.location.hash.startsWith('#item=')) {
+                urlItem = window.location.hash.substring(6);
+            }
+
+            if (urlItem) {
+                mainTitle.textContent = "McDonald's Item Display";
+                displayItem(urlItem, true);
+                inputSection.classList.add('hidden');
+            } else {
+                inputSection.classList.remove('hidden');
+                mainTitle.textContent = "McDonald's Item Finder (Manual Search)";
+            }
+
+            searchButton.addEventListener('click', processInputList);
             itemInput.addEventListener('keypress', (event) => {
                 if (event.key === 'Enter') {
-                    searchButton.click();
+                    processInputList();
                 }
             });
         });
