@@ -3,9 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>McDonald's Item Finding API</title>
+    <title id="pageTitle">McDonald's Item Finding API</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        body {
+            background-color: #f3f4f6;
+        }
+        #mainContainer {
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            max-width: 32rem;
+            width: 100%;
+        }
         #generatedLinkContainer {
             margin-top: 1.5rem;
             padding: 1rem;
@@ -18,6 +29,71 @@
             color: #2563eb;
             text-decoration: underline;
         }
+
+        body.display-mode {
+            background-color: transparent !important;
+            display: block !important;
+            height: auto !important;
+            min-height: auto !important;
+            align-items: normal !important;
+            justify-content: normal !important;
+            font-size: 0;
+        }
+        body.display-mode #mainContainer {
+            box-shadow: none !important;
+            background-color: transparent !important;
+            padding: 0 !important;
+            max-width: none !important;
+            width: auto !important;
+            text-align: center !important;
+            margin: 0 auto;
+        }
+        body.display-mode #mainTitle,
+        body.display-mode #inputSection,
+        body.display-mode #resultContainer #messages:not(.url-error-message),
+        body.display-mode #imageGallery .item-status-text {
+            display: none !important;
+        }
+        body.display-mode #imageGallery {
+            display: inline-flex !important;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0 !important;
+            width: auto !important;
+            height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        body.display-mode #imageGallery > div {
+            padding: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            background-color: transparent !important;
+            display: inline-block !important;
+            margin: 0 !important;
+            vertical-align: top;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+        }
+        body.display-mode #imageGallery img {
+            display: block !important;
+            width: auto !important;
+            height: auto !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
+            margin: 0 auto !important;
+        }
+        body.display-mode #messages.url-error-message {
+            display: block !important;
+            color: #ef4444;
+            text-align: center;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            background-color: transparent;
+            padding: 0;
+            line-height: 1;
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
@@ -26,7 +102,7 @@
 
         <div id="inputSection">
             <h2 class="text-xl font-semibold mb-4 text-gray-700">Search for Items</h2>
-            <p>This API is not created, owned, operated, nor endorsed my Mc Donald's Canada, Mc Donald's or any other related company.</p>
+            <p class="mb-4 text-sm text-gray-600">This API is not created, owned, operated, nor endorsed by McDonald's Canada, McDonald's or any other related company.</p>
             <div class="mb-4">
                 <input type="text" id="itemInput" placeholder="e.g., chicken nuggets and french fries"
                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -64,6 +140,7 @@
             const generatedLinkContainer = document.getElementById('generatedLinkContainer');
             const generatedLink = document.getElementById('generatedLink');
             const copyLinkButton = document.getElementById('copyLinkButton');
+            const pageTitleElement = document.getElementById('pageTitle');
 
             const imagePathPrefix = '/assets/v1/';
             const imagePathSuffix = '.webp';
@@ -77,37 +154,31 @@
                 const imagePath = `${imagePathPrefix}${formattedItemName}${imagePathSuffix}`;
 
                 const imageWrapper = document.createElement('div');
-                imageWrapper.className = 'flex flex-col items-center justify-center p-2 border rounded-md shadow-sm';
-
-                const itemTitle = document.createElement('p');
-                itemTitle.className = 'font-semibold text-gray-800 mb-2';
-                itemTitle.textContent = `"${formattedItemName.replace(/_/g, ' ')}": `;
+                imageWrapper.className = 'flex flex-col items-center justify-center';
 
                 const imgElement = document.createElement('img');
                 imgElement.src = imagePath;
                 imgElement.alt = item;
-                imgElement.className = 'hidden w-full h-32 object-contain rounded-md';
+                imgElement.className = 'block';
 
-                imageWrapper.appendChild(itemTitle);
                 imageWrapper.appendChild(imgElement);
                 imageGalleryDiv.appendChild(imageWrapper);
 
                 imgElement.onload = () => {
-                    itemTitle.innerHTML += '<span class="text-green-600">Detected!</span>';
-                    imgElement.classList.remove('hidden');
-                    imgElement.classList.add('block');
+                    console.log(`"${formattedItemName}": Detected!`);
                 };
 
                 imgElement.onerror = () => {
-                    itemTitle.innerHTML += '<span class="text-red-600">Not Found.</span>';
-                    imgElement.classList.add('hidden');
+                    console.log(`"${formattedItemName}": Not Found.`);
+                    messagesDiv.classList.add('url-error-message');
+                    messagesDiv.innerHTML += `<p>"${formattedItemName.replace(/_/g, ' ')}" not found.</p>`;
+                    imgElement.style.display = 'none';
                 };
             }
 
-            function processAndRedirect() {
+            function processAndGenerateLink() {
                 const inputValue = itemInput.value.trim();
                 messagesDiv.innerHTML = '';
-                imageGalleryDiv.innerHTML = '';
                 generatedLinkContainer.classList.add('hidden');
 
                 if (!inputValue) {
@@ -152,26 +223,26 @@
             const itemParam = urlParams.get('item');
 
             if (itemParam) {
-                mainTitle.textContent = "McDonald's Items";
-                inputSection.classList.add('hidden');
+                pageTitleElement.textContent = "McDonald's Item";
+                document.body.classList.add('display-mode');
+                
                 const itemsToDisplay = itemParam.split(',').map(item => item.trim()).filter(item => item !== '');
 
                 if (itemsToDisplay.length > 0) {
-                    itemsToDisplay.forEach(item => displayItem(item, true));
+                    itemsToDisplay.forEach(item => displayItem(item));
                 } else {
-                    messagesDiv.innerHTML = '<p class="text-red-500">No valid items found in URL parameter.</p>';
-                    inputSection.classList.remove('hidden');
-                    mainTitle.textContent = "McDonald's Item Finder (No Valid URL Item)";
+                    messagesDiv.classList.add('url-error-message');
+                    messagesDiv.innerHTML = '<p>No valid items found in URL parameter.</p>';
                 }
             } else {
-                inputSection.classList.remove('hidden');
-                mainTitle.textContent = "McDonald's Item Finder (Manual Search)";
+                pageTitleElement.textContent = "McDonald's Item Finding API";
+                document.body.classList.remove('display-mode');
             }
 
-            searchButton.addEventListener('click', processAndRedirect);
+            searchButton.addEventListener('click', processAndGenerateLink);
             itemInput.addEventListener('keypress', (event) => {
                 if (event.key === 'Enter') {
-                    processAndRedirect();
+                    processAndGenerateLink();
                 }
             });
         });
