@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>McDonald's Item Finder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md text-center">
+        <h1 class="text-2xl font-bold mb-6 text-gray-800">Find Your McDonald's Item</h1>
+
+        <div class="mb-4">
+            <input type="text" id="itemInput" placeholder="e.g., chicken_nugget"
+                   class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <button id="searchButton"
+                class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+            Search Item
+        </button>
+
+        <div id="resultContainer" class="mt-8">
+            <p id="message" class="text-gray-600 mb-4"></p>
+            <img id="itemImage" src="" alt="McDonald's Item" class="hidden w-full h-auto rounded-md mx-auto object-contain max-h-64">
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const itemInput = document.getElementById('itemInput');
+            const searchButton = document.getElementById('searchButton');
+            const itemImage = document.getElementById('itemImage');
+            const message = document.getElementById('message');
+
+            const validMcDonaldsItems = [
+                "chicken_nugget",
+                "big_mac",
+                "fries",
+                "mcflurry",
+                "cheeseburger",
+                "quarter_pounder",
+                "egg_mcmuffin",
+            ];
+
+            const imagePathPrefix = '/assets/v1/';
+            const imagePathSuffix = '.webp';
+
+            searchButton.addEventListener('click', () => {
+                const inputValue = itemInput.value.trim().toLowerCase();
+
+                if (!inputValue) {
+                    message.textContent = 'Please enter an item name.';
+                    itemImage.classList.add('hidden');
+                    return;
+                }
+
+                const imagePath = `${imagePathPrefix}${inputValue}${imagePathSuffix}`;
+                console.log(`Attempting to load image from: ${imagePath}`);
+                itemImage.src = imagePath;
+
+                itemImage.onload = () => {
+                    message.textContent = `Displaying: ${inputValue.replace(/_/g, ' ')}`;
+                    itemImage.classList.remove('hidden');
+                };
+
+                itemImage.onerror = () => {
+                    message.textContent = `Sorry, "${inputValue.replace(/_/g, ' ')}" not found or image failed to load.`;
+                    itemImage.classList.add('hidden');
+                };
+
+                message.textContent = 'Loading...';
+            });
+
+            itemInput.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    searchButton.click();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
