@@ -3,23 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>McDonald's Item Finder</title>
+    <title>McDonald's Item Finding API</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        #generatedLinkContainer {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background-color: #f0f4f8;
+            border-radius: 0.5rem;
+            border: 1px solid #cbd5e1;
+        }
+        #generatedLink {
+            word-wrap: break-word;
+            color: #2563eb;
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
     <div id="mainContainer" class="bg-white p-8 rounded-lg shadow-md w-full max-w-xl text-center">
         <h1 class="text-2xl font-bold mb-6 text-gray-800" id="mainTitle">McDonald's Item Finder</h1>
 
-        <div id="inputSection" class="hidden">
-            <h2 class="text-xl font-semibold mb-4 text-gray-700">Search for an Item</h2>
+        <div id="inputSection">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Search for Items</h2>
+            <p>This API is not created, owned, operated, nor endorsed my Mc Donald's Canada, Mc Donald's or any other related company.</p>
             <div class="mb-4">
-                <input type="text" id="itemInput" placeholder="e.g., chicken nuggets, french fries"
+                <input type="text" id="itemInput" placeholder="e.g., chicken nuggets and french fries"
                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
             <button id="searchButton"
                     class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
-                Search Items
+                Generate Link & Display
             </button>
+            <div id="generatedLinkContainer" class="hidden text-sm">
+                <p class="font-semibold mb-2">Share this link:</p>
+                <a id="generatedLink" href="#" class="block text-blue-600 hover:text-blue-800 break-all"></a>
+                <button id="copyLinkButton" class="mt-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-1 px-3 rounded-md text-sm">
+                    Copy Link
+                </button>
+            </div>
         </div>
 
         <div id="resultContainer" class="mt-8 text-left">
@@ -39,6 +61,9 @@
             const imageGalleryDiv = document.getElementById('imageGallery');
             const inputSection = document.getElementById('inputSection');
             const mainTitle = document.getElementById('mainTitle');
+            const generatedLinkContainer = document.getElementById('generatedLinkContainer');
+            const generatedLink = document.getElementById('generatedLink');
+            const copyLinkButton = document.getElementById('copyLinkButton');
 
             const imagePathPrefix = '/assets/v1/';
             const imagePathSuffix = '.webp';
@@ -47,7 +72,7 @@
                 return itemName.trim().toLowerCase().replace(/\s+/g, '_');
             }
 
-            function displayItem(item, isUrlLoad = false) {
+            function displayItem(item) {
                 const formattedItemName = formatItemForLookup(item);
                 const imagePath = `${imagePathPrefix}${formattedItemName}${imagePathSuffix}`;
 
@@ -76,58 +101,77 @@
                 imgElement.onerror = () => {
                     itemTitle.innerHTML += '<span class="text-red-600">Not Found.</span>';
                     imgElement.classList.add('hidden');
-                    if (isUrlLoad) {
-                        inputSection.classList.remove('hidden');
-                        mainTitle.textContent = "McDonald's Item Finder (Item Not Found)";
-                        messagesDiv.innerHTML = '<p class="text-red-500">Could not find item from URL. Please use the input box.</p>';
-                    }
                 };
             }
 
-            function processInputList() {
+            function processAndRedirect() {
                 const inputValue = itemInput.value.trim();
                 messagesDiv.innerHTML = '';
                 imageGalleryDiv.innerHTML = '';
-                inputSection.classList.remove('hidden');
-                mainTitle.textContent = "McDonald's Item Finder (Manual Search)";
+                generatedLinkContainer.classList.add('hidden');
 
                 if (!inputValue) {
                     messagesDiv.innerHTML = '<p class="text-red-500">Please enter one or more item names.</p>';
                     return;
                 }
 
-                const items = inputValue.split(',').map(item => item.trim()).filter(item => item !== '');
+                const rawItems = inputValue.split(/,|\band\b|&{1,2}|\s+/i)
+                                            .map(item => item.trim())
+                                            .filter(item => item !== '');
 
-                if (items.length === 0) {
-                    messagesDiv.innerHTML = '<p class="text-red-500">No valid items entered. Please try again.</p>';
+                const uniqueFormattedItems = [...new Set(rawItems.map(formatItemForLookup))];
+
+                if (uniqueFormattedItems.length === 0) {
+                    messagesDiv.innerHTML = '<p class="text-red-500">No valid items parsed. Please try again.</p>';
                     return;
                 }
 
-                items.forEach(item => displayItem(item));
+                const newUrlParam = uniqueFormattedItems.join(',');
+                const newUrl = `${window.location.origin}${window.location.pathname}?item=${encodeURIComponent(newUrlParam)}`;
+
+                generatedLink.href = newUrl;
+                generatedLink.textContent = newUrl;
+                generatedLinkContainer.classList.remove('hidden');
+                messagesDiv.innerHTML = '<p class="text-green-600">Link generated successfully! Click it or copy it.</p>';
             }
 
-            let urlItem = null;
+            copyLinkButton.addEventListener('click', () => {
+                const linkToCopy = generatedLink.textContent;
+                navigator.clipboard.writeText(linkToCopy).then(() => {
+                    copyLinkButton.textContent = 'Copied!';
+                    setTimeout(() => {
+                        copyLinkButton.textContent = 'Copy Link';
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy link:', err);
+                    alert('Failed to copy link. Please copy it manually.');
+                });
+            });
 
             const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('item')) {
-                urlItem = urlParams.get('item');
-            } else if (window.location.hash.startsWith('#item=')) {
-                urlItem = window.location.hash.substring(6);
-            }
+            const itemParam = urlParams.get('item');
 
-            if (urlItem) {
-                mainTitle.textContent = "McDonald's Item Display";
-                displayItem(urlItem, true);
+            if (itemParam) {
+                mainTitle.textContent = "McDonald's Items";
                 inputSection.classList.add('hidden');
+                const itemsToDisplay = itemParam.split(',').map(item => item.trim()).filter(item => item !== '');
+
+                if (itemsToDisplay.length > 0) {
+                    itemsToDisplay.forEach(item => displayItem(item, true));
+                } else {
+                    messagesDiv.innerHTML = '<p class="text-red-500">No valid items found in URL parameter.</p>';
+                    inputSection.classList.remove('hidden');
+                    mainTitle.textContent = "McDonald's Item Finder (No Valid URL Item)";
+                }
             } else {
                 inputSection.classList.remove('hidden');
                 mainTitle.textContent = "McDonald's Item Finder (Manual Search)";
             }
 
-            searchButton.addEventListener('click', processInputList);
+            searchButton.addEventListener('click', processAndRedirect);
             itemInput.addEventListener('keypress', (event) => {
                 if (event.key === 'Enter') {
-                    processInputList();
+                    processAndRedirect();
                 }
             });
         });
